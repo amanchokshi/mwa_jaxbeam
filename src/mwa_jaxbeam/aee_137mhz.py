@@ -538,11 +538,8 @@ def port_currents(
     )
 
     # Initially:
-    #
     #     (32 ports, 2 driven feeds)
-    #
     # Reshape to:
-    #
     #     (2 port polarizations, 16 dipoles, 2 driven feeds)
     currents = currents.reshape(
         N_FEEDS,
@@ -551,7 +548,6 @@ def port_currents(
     )
 
     # Return:
-    #
     #     (port polarization, driven feed, dipole)
     return jnp.swapaxes(
         currents,
@@ -592,19 +588,15 @@ def array_factor(
     )
 
     # direction has shape:
-    #
     #     (..., 3)
-    #
+
     # Adding a dipole axis gives:
-    #
     #     (..., 1, 3)
-    #
+
     # Multiplication with the dipole positions produces:
-    #
     #     (..., 16, 3)
-    #
+
     # Summing over the ENU-coordinate axis gives the geometric path:
-    #
     #     (..., 16)
     geometric_path_m = jnp.sum(
         direction[..., jnp.newaxis, :] * DIPOLE_POSITIONS_ENU_M,
@@ -616,19 +608,15 @@ def array_factor(
     currents = port_currents(excitations)
 
     # geometric_phase:
-    #
     #     (..., 16)
-    #
+
     # geometric_phase[..., None, None, :]:
-    #
     #     (..., 1, 1, 16)
-    #
+
     # currents:
-    #
     #     (2 port polarizations, 2 driven feeds, 16 dipoles)
-    #
+
     # weighted_currents:
-    #
     #     (..., 2, 2, 16)
     weighted_currents = (
         geometric_phase[
@@ -712,13 +700,10 @@ def jones(
     )
 
     # Matrix multiplication sums over the port-polarization axis:
-    #
     # (..., sky component, port polarization)
     # @
     # (..., port polarization, driven feed)
-    #
     # ->
-    #
     # (..., sky component, driven feed)
     tile_jones = element_matrix @ factor_matrix
 
