@@ -25,4 +25,5 @@ dependencies = [
 [dependency-groups]
 dev = [
     "astropy>=6.1.7",
+    "ruff>=0.16.0",
 ]
