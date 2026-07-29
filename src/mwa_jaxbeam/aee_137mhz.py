@@ -58,6 +58,8 @@ __all__ = [
 ]
 
 
+FREQUENCY_HZ: Final[float] = 137e6
+
 N_FEEDS: Final[int] = 2
 N_DIPOLES: Final[int] = 16
 N_PORTS: Final[int] = N_FEEDS * N_DIPOLES
@@ -69,8 +71,14 @@ REAL_DTYPE = jnp.float32
 COMPLEX_DTYPE = jnp.complex64
 
 
-def _load_model_data() -> dict[str, np.ndarray]:
-    """Load the packaged 137 MHz AEE model archive."""
+def _load_model_data() -> tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+]:
+    """Load the arrays required by the packaged 137 MHz AEE model."""
     resource = files("mwa_jaxbeam").joinpath(
         "data",
         "aee_137mhz.npz",
@@ -78,38 +86,60 @@ def _load_model_data() -> dict[str, np.ndarray]:
 
     with as_file(resource) as path:
         with np.load(path) as archive:
-            return {key: np.array(archive[key], copy=True) for key in archive.files}
+            return (
+                np.array(archive["az_rad"], copy=True),
+                np.array(archive["za_rad"], copy=True),
+                np.array(archive["element_jones"], copy=True),
+                np.array(archive["z_total_ohm"], copy=True),
+                np.array(
+                    archive["dipole_positions_enu_m"],
+                    copy=True,
+                ),
+            )
 
 
-_MODEL_DATA = _load_model_data()
+(
+    _azimuth_rad,
+    _za_rad,
+    _element_jones,
+    _z_total_ohm,
+    _dipole_positions_enu_m,
+) = _load_model_data()
 
-
-FREQUENCY_HZ: Final[float] = float(_MODEL_DATA["frequency_hz"])
 
 AZIMUTH_RAD: Final[Array] = jnp.asarray(
-    _MODEL_DATA["az_rad"],
+    _azimuth_rad,
     dtype=REAL_DTYPE,
 )
 
 ZA_RAD: Final[Array] = jnp.asarray(
-    _MODEL_DATA["za_rad"],
+    _za_rad,
     dtype=REAL_DTYPE,
 )
 
 ELEMENT_JONES: Final[Array] = jnp.asarray(
-    _MODEL_DATA["element_jones"],
+    _element_jones,
     dtype=COMPLEX_DTYPE,
 )
 
 Z_TOTAL_OHM: Final[Array] = jnp.asarray(
-    _MODEL_DATA["z_total_ohm"],
+    _z_total_ohm,
     dtype=COMPLEX_DTYPE,
 )
 
 DIPOLE_POSITIONS_ENU_M: Final[Array] = jnp.asarray(
-    _MODEL_DATA["dipole_positions_enu_m"],
+    _dipole_positions_enu_m,
     dtype=REAL_DTYPE,
 )
+
+del (
+    _azimuth_rad,
+    _za_rad,
+    _element_jones,
+    _z_total_ohm,
+    _dipole_positions_enu_m,
+)
+
 
 WAVENUMBER_RAD_PER_M: Final[Array] = jnp.asarray(
     TWO_PI * FREQUENCY_HZ / SPEED_OF_LIGHT_M_PER_S,
@@ -123,13 +153,7 @@ _DEFAULT_EXCITATIONS: Final[Array] = jnp.ones(
 
 
 def _validate_model_data() -> None:
-    """Validate the dimensions and frequency of the model archive."""
-    if not np.isclose(FREQUENCY_HZ, 137e6):
-        raise ValueError(
-            "The packaged AEE model must be evaluated at "
-            f"137 MHz, but contains {FREQUENCY_HZ / 1e6:.6f} MHz."
-        )
-
+    """Validate the dimensions and coordinate grids of the model archive."""
     expected_jones_shape = (
         N_FEEDS,
         N_FEEDS,
@@ -143,21 +167,39 @@ def _validate_model_data() -> None:
             f"{expected_jones_shape}, got {ELEMENT_JONES.shape}."
         )
 
-    if Z_TOTAL_OHM.shape != (N_PORTS, N_PORTS):
+    expected_impedance_shape = (
+        N_PORTS,
+        N_PORTS,
+    )
+
+    if Z_TOTAL_OHM.shape != expected_impedance_shape:
         raise ValueError(
             "Unexpected total-impedance shape. Expected "
-            f"{(N_PORTS, N_PORTS)}, got {Z_TOTAL_OHM.shape}."
+            f"{expected_impedance_shape}, got {Z_TOTAL_OHM.shape}."
         )
 
-    if DIPOLE_POSITIONS_ENU_M.shape != (N_DIPOLES, 3):
+    expected_position_shape = (
+        N_DIPOLES,
+        3,
+    )
+
+    if DIPOLE_POSITIONS_ENU_M.shape != expected_position_shape:
         raise ValueError(
             "Unexpected dipole-position shape. Expected "
-            f"{(N_DIPOLES, 3)}, got "
+            f"{expected_position_shape}, got "
             f"{DIPOLE_POSITIONS_ENU_M.shape}."
         )
 
     azimuth_rad = np.asarray(AZIMUTH_RAD)
     zenith_angle_rad = np.asarray(ZA_RAD)
+
+    if not np.all(np.isfinite(azimuth_rad)):
+        raise ValueError("The model azimuth coordinates contain non-finite values.")
+
+    if not np.all(np.isfinite(zenith_angle_rad)):
+        raise ValueError(
+            "The model zenith-angle coordinates contain non-finite values."
+        )
 
     if not np.all(np.diff(azimuth_rad) > 0.0):
         raise ValueError("The model azimuth coordinates must be strictly increasing.")
