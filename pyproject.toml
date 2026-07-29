@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "mwa-jaxbeam"
 version = "0.1.0"
@@ -5,7 +9,9 @@ description = "Experiments with native JAX implementations of MWA beam models fo
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Aman Chokshi", email = "aman.chokshi@mcgill.ca" }]
+authors = [
+    { name = "Aman Chokshi", email = "aman.chokshi@mcgill.ca" },
+]
 keywords = [
     "radio astronomy",
     "MWA",
@@ -13,9 +19,9 @@ keywords = [
     "jax",
 ]
 classifiers = [
-  "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: MIT License",
-  "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
 ]
 dependencies = [
     "jax>=0.6.2",
@@ -27,3 +33,6 @@ dev = [
     "astropy>=6.1.7",
     "ruff>=0.16.0",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mwa_jaxbeam"]
