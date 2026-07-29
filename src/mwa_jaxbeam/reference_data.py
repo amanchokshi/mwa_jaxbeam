@@ -14,7 +14,7 @@ REPO_ROOT = PACKAGE_DIR.parent.parent.parent
 
 DEFAULT_REFERENCE_DIR = REPO_ROOT / "data"
 
-DEFAULT_RUNTIME_ARCHIVE = (
+RUNTIME_ARCHIVE = (
     PACKAGE_DIR
     / "data"
     / "aee_137mhz.npz"
