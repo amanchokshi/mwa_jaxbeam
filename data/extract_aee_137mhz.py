@@ -11,7 +11,7 @@ The script:
 
        az = 0 at North, increasing eastward.
 
-6. Saves a compact NumPy archive for the JAX runtime model.
+6. Saves the arrays required by the JAX runtime model.
 
 The interpolation and preprocessing are performed in double precision. Arrays
 written to the runtime archive use float32 and complex64.
@@ -32,7 +32,6 @@ from numpy.typing import NDArray
 
 from mwa_jaxbeam.reference_data import (
     DEFAULT_REFERENCE_DIR,
-    ReferenceDataPaths,
     ensure_reference_data,
 )
 
@@ -101,8 +100,7 @@ def validate_frequency_grids(
 
         raise ValueError(
             "J- and Z-matrix frequency grids do not match. "
-            f"Maximum difference: "
-            f"{maximum_difference_hz:.6f} Hz."
+            f"Maximum difference: {maximum_difference_hz:.6f} Hz."
         )
 
 
@@ -197,12 +195,10 @@ def interpolate_complex(
     if not 0.0 <= weight <= 1.0:
         raise ValueError(f"Interpolation weight must lie in [0, 1], got {weight}.")
 
-    real = (1.0 - weight) * lower.real + weight * upper.real
-    imag = (1.0 - weight) * lower.imag + weight * upper.imag
-
-    return np.asarray(
-        real + 1j * imag,
-        dtype=np.complex128,
+    return (
+        (1.0 - weight) * lower.real
+        + weight * upper.real
+        + 1j * ((1.0 - weight) * lower.imag + weight * upper.imag)
     )
 
 
@@ -307,11 +303,8 @@ def construct_element_jones(
     # element_jones[0, 1] = J_y_phi
     # element_jones[1, 1] = J_y_theta
     element_jones[1, 0] = (data[:, 2] + 1j * data[:, 3]).reshape(n_phi, n_za).T
-
     element_jones[0, 0] = (data[:, 4] + 1j * data[:, 5]).reshape(n_phi, n_za).T
-
     element_jones[1, 1] = (data[:, 6] + 1j * data[:, 7]).reshape(n_phi, n_za).T
-
     element_jones[0, 1] = (data[:, 8] + 1j * data[:, 9]).reshape(n_phi, n_za).T
 
     return element_jones
@@ -336,7 +329,12 @@ def convert_feko_azimuth(
 
         az = (pi / 2 - phi) mod 2 pi.
     """
-    phi_rad = np.deg2rad(np.asarray(phi_deg, dtype=np.float64))
+    phi_rad = np.deg2rad(
+        np.asarray(
+            phi_deg,
+            dtype=np.float64,
+        )
+    )
 
     az_rad = np.mod(
         np.pi / 2.0 - phi_rad,
@@ -346,14 +344,8 @@ def convert_feko_azimuth(
     az_order = np.argsort(az_rad)
 
     return (
-        np.asarray(
-            az_rad[az_order],
-            dtype=np.float64,
-        ),
-        np.asarray(
-            element_jones[..., az_order],
-            dtype=np.complex128,
-        ),
+        az_rad[az_order],
+        element_jones[..., az_order],
     )
 
 
@@ -427,14 +419,8 @@ def remove_duplicate_azimuth_samples(
         keep[upper_index] = False
 
     return (
-        np.asarray(
-            az_rad[keep],
-            dtype=np.float64,
-        ),
-        np.asarray(
-            element_jones[..., keep],
-            dtype=np.complex128,
-        ),
+        az_rad[keep],
+        element_jones[..., keep],
     )
 
 
@@ -495,10 +481,7 @@ def load_element_jones_at_index(
     if np.any(np.diff(az_rad) <= 0.0):
         raise ValueError("Converted azimuth coordinates are not strictly increasing.")
 
-    za_rad = np.asarray(
-        np.deg2rad(theta_deg),
-        dtype=np.float64,
-    )
+    za_rad = np.deg2rad(theta_deg)
 
     return element_jones, za_rad, az_rad
 
@@ -509,7 +492,7 @@ def load_interpolated_element_jones(
     upper_index: int,
     weight: float,
 ) -> tuple[ComplexArray, FloatArray, FloatArray]:
-    """Load and interpolate the J matrix to a target frequency."""
+    """Load and interpolate the J matrix to 137 MHz."""
     lower_jones, lower_za_rad, lower_az_rad = load_element_jones_at_index(
         path,
         lower_index,
@@ -591,10 +574,7 @@ def load_coupling_matrix_at_index(
     magnitude = data[0]
     phase_rad = data[1]
 
-    coupling_yx = np.asarray(
-        magnitude * np.exp(1j * phase_rad),
-        dtype=np.complex128,
-    )
+    coupling_yx = magnitude * np.exp(1j * phase_rad)
 
     n = MWA_NDIPOLE
 
@@ -605,12 +585,7 @@ def load_coupling_matrix_at_index(
         )
     )
 
-    coupling_xy = coupling_yx[np.ix_(reorder, reorder)]
-
-    return np.asarray(
-        coupling_xy,
-        dtype=np.complex128,
-    )
+    return coupling_yx[np.ix_(reorder, reorder)]
 
 
 def load_interpolated_coupling_matrix(
@@ -619,7 +594,7 @@ def load_interpolated_coupling_matrix(
     upper_index: int,
     weight: float,
 ) -> ComplexArray:
-    """Load and interpolate the Z matrix to a target frequency."""
+    """Load and interpolate the Z matrix to 137 MHz."""
     lower_matrix = load_coupling_matrix_at_index(
         path,
         lower_index,
@@ -656,18 +631,9 @@ def interpolate_lna_impedance(
             f"Expected at least three columns in {path}, got shape {data.shape}."
         )
 
-    impedance_frequency_hz = np.asarray(
-        data[:, 0],
-        dtype=np.float64,
-    )
-    impedance_real_ohm = np.asarray(
-        data[:, 1],
-        dtype=np.float64,
-    )
-    impedance_imag_ohm = np.asarray(
-        data[:, 2],
-        dtype=np.float64,
-    )
+    impedance_frequency_hz = data[:, 0]
+    impedance_real_ohm = data[:, 1]
+    impedance_imag_ohm = data[:, 2]
 
     finite = (
         np.isfinite(impedance_frequency_hz)
@@ -732,178 +698,143 @@ def make_dipole_positions_enu_m() -> FloatArray:
     )
 
     east_m = (east_m - east_m.mean()).reshape(-1)
-
     north_m = (north_m - north_m.mean()).reshape(-1)
+    up_m = np.zeros(MWA_NDIPOLE, dtype=np.float64)
 
-    up_m = np.zeros(
-        MWA_NDIPOLE,
-        dtype=np.float64,
-    )
-
-    return np.asarray(
-        np.stack(
-            (
-                east_m,
-                north_m,
-                up_m,
-            ),
-            axis=-1,
+    return np.stack(
+        (
+            east_m,
+            north_m,
+            up_m,
         ),
-        dtype=np.float64,
+        axis=-1,
     )
-
-
-def make_port_order() -> NDArray[np.str_]:
-    """Return the names of the 32 ports in archive order."""
-    return np.asarray(
-        [
-            *(f"x{index}" for index in range(MWA_NDIPOLE)),
-            *(f"y{index}" for index in range(MWA_NDIPOLE)),
-        ]
-    )
-
-
-def print_frequency_summary(
-    *,
-    target_frequency_hz: float,
-    lower_frequency_hz: float,
-    upper_frequency_hz: float,
-    lower_index: int,
-    upper_index: int,
-    interpolation_weight: float,
-) -> None:
-    """Print the selected frequency planes."""
-    print()
-    print(f"Target frequency:      {target_frequency_hz / 1e6:.6f} MHz")
-
-    if lower_index == upper_index:
-        print(f"Exact FITS frequency:  {lower_frequency_hz / 1e6:.6f} MHz")
-        print(f"FITS HDU index:        {lower_index}")
-        return
-
-    print(f"Lower frequency:       {lower_frequency_hz / 1e6:.6f} MHz")
-    print(f"Upper frequency:       {upper_frequency_hz / 1e6:.6f} MHz")
-    print(f"Lower FITS HDU index:  {lower_index}")
-    print(f"Upper FITS HDU index:  {upper_index}")
-    print(f"Upper-plane weight:    {interpolation_weight:.10f}")
 
 
 def save_runtime_archive(
     *,
     output_path: Path,
-    target_frequency_hz: float,
-    lower_frequency_hz: float,
-    upper_frequency_hz: float,
-    lower_index: int,
-    upper_index: int,
-    interpolation_weight: float,
     az_rad: FloatArray,
     za_rad: FloatArray,
     element_jones: ComplexArray,
-    coupling_matrix_ohm: ComplexArray,
-    lna_impedance_ohm: complex,
     z_total_ohm: ComplexArray,
     dipole_positions_enu_m: FloatArray,
 ) -> None:
-    """
-    Save the compact AEE runtime archive.
-
-    All real-valued runtime arrays use float32. All complex-valued runtime
-    arrays use complex64.
-    """
+    """Save only the arrays required by the 137 MHz JAX runtime."""
     output_path = Path(output_path)
     output_path.parent.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    runtime_float = np.float32
-    runtime_complex = np.complex64
-
-    np.savez_compressed(
+    np.savez(
         output_path,
-        frequency_hz=np.asarray(
-            target_frequency_hz,
-            dtype=runtime_float,
-        ),
-        lower_frequency_hz=np.asarray(
-            lower_frequency_hz,
-            dtype=runtime_float,
-        ),
-        upper_frequency_hz=np.asarray(
-            upper_frequency_hz,
-            dtype=runtime_float,
-        ),
-        lower_frequency_index=np.asarray(
-            lower_index,
-            dtype=np.int32,
-        ),
-        upper_frequency_index=np.asarray(
-            upper_index,
-            dtype=np.int32,
-        ),
-        frequency_interpolation_weight=np.asarray(
-            interpolation_weight,
-            dtype=runtime_float,
-        ),
         az_rad=np.asarray(
             az_rad,
-            dtype=runtime_float,
+            dtype=np.float32,
         ),
         za_rad=np.asarray(
             za_rad,
-            dtype=runtime_float,
+            dtype=np.float32,
         ),
         element_jones=np.asarray(
             element_jones,
-            dtype=runtime_complex,
-        ),
-        coupling_matrix_ohm=np.asarray(
-            coupling_matrix_ohm,
-            dtype=runtime_complex,
-        ),
-        lna_impedance_ohm=np.asarray(
-            lna_impedance_ohm,
-            dtype=runtime_complex,
+            dtype=np.complex64,
         ),
         z_total_ohm=np.asarray(
             z_total_ohm,
-            dtype=runtime_complex,
+            dtype=np.complex64,
         ),
         dipole_positions_enu_m=np.asarray(
             dipole_positions_enu_m,
-            dtype=runtime_float,
-        ),
-        feed_order=np.asarray(
-            ["x", "y"],
-        ),
-        vector_component_order=np.asarray(
-            ["phi", "theta"],
-        ),
-        port_order=make_port_order(),
-        coordinate_system=np.asarray("ENU"),
-        azimuth_convention=np.asarray("radians east of north; 0=north, pi/2=east"),
-        interpolation_method=np.asarray(
-            "linear interpolation of real and imaginary components"
+            dtype=np.float32,
         ),
     )
 
 
-def print_archive_summary(
+def extract_aee_data(
     *,
+    jmatrix_path: Path,
+    zmatrix_path: Path,
+    lna_impedance_path: Path,
     output_path: Path,
-    element_jones: ComplexArray,
-    coupling_matrix_ohm: ComplexArray,
-    z_total_ohm: ComplexArray,
-    za_rad: FloatArray,
-    az_rad: FloatArray,
-    lna_impedance_ohm: complex,
 ) -> None:
-    """Print a summary of the generated archive."""
+    """Extract, interpolate, and save the 137 MHz AEE model."""
+    j_frequencies_hz = read_frequencies_hz(jmatrix_path)
+    z_frequencies_hz = read_frequencies_hz(zmatrix_path)
+
+    validate_frequency_grids(
+        j_frequencies_hz,
+        z_frequencies_hz,
+    )
+
+    (
+        lower_index,
+        upper_index,
+        interpolation_weight,
+    ) = find_frequency_bracket(
+        j_frequencies_hz,
+        TARGET_FREQUENCY_HZ,
+    )
+
+    lower_frequency_hz = float(j_frequencies_hz[lower_index])
+    upper_frequency_hz = float(j_frequencies_hz[upper_index])
+
+    print()
+    print(f"Target frequency:      {TARGET_FREQUENCY_HZ / 1e6:.6f} MHz")
+
+    if lower_index == upper_index:
+        print(f"Exact FITS frequency:  {lower_frequency_hz / 1e6:.6f} MHz")
+        print(f"FITS HDU index:        {lower_index}")
+    else:
+        print(f"Lower frequency:       {lower_frequency_hz / 1e6:.6f} MHz")
+        print(f"Upper frequency:       {upper_frequency_hz / 1e6:.6f} MHz")
+        print(f"Lower FITS HDU index:  {lower_index}")
+        print(f"Upper FITS HDU index:  {upper_index}")
+        print(f"Upper-plane weight:    {interpolation_weight:.10f}")
+
+    element_jones, za_rad, az_rad = load_interpolated_element_jones(
+        jmatrix_path,
+        lower_index,
+        upper_index,
+        interpolation_weight,
+    )
+
+    coupling_matrix_ohm = load_interpolated_coupling_matrix(
+        zmatrix_path,
+        lower_index,
+        upper_index,
+        interpolation_weight,
+    )
+
+    lna_impedance_ohm = interpolate_lna_impedance(
+        lna_impedance_path,
+        TARGET_FREQUENCY_HZ,
+    )
+
+    z_total_ohm = (
+        coupling_matrix_ohm
+        + np.eye(
+            MWA_NPORT,
+            dtype=np.complex128,
+        )
+        * lna_impedance_ohm
+    )
+
+    dipole_positions_enu_m = make_dipole_positions_enu_m()
+
+    save_runtime_archive(
+        output_path=output_path,
+        az_rad=az_rad,
+        za_rad=za_rad,
+        element_jones=element_jones,
+        z_total_ohm=z_total_ohm,
+        dipole_positions_enu_m=dipole_positions_enu_m,
+    )
+
     print()
     print(f"Saved archive:          {output_path}")
     print(f"Jones shape:            {element_jones.shape}")
-    print(f"Coupling matrix shape:  {coupling_matrix_ohm.shape}")
     print(f"Z-total shape:          {z_total_ohm.shape}")
     print(f"Zenith-angle samples:   {za_rad.size}")
     print(f"Azimuth samples:        {az_rad.size}")
@@ -921,103 +852,6 @@ def print_archive_summary(
     print("Runtime complex dtype:  complex64")
 
 
-def extract_aee_data(
-    *,
-    reference_paths: ReferenceDataPaths,
-    output_path: Path,
-    target_frequency_hz: float,
-) -> None:
-    """Extract, interpolate, and save the AEE model."""
-    j_frequencies_hz = read_frequencies_hz(reference_paths.jmatrix)
-    z_frequencies_hz = read_frequencies_hz(reference_paths.zmatrix)
-
-    validate_frequency_grids(
-        j_frequencies_hz,
-        z_frequencies_hz,
-    )
-
-    (
-        lower_index,
-        upper_index,
-        interpolation_weight,
-    ) = find_frequency_bracket(
-        j_frequencies_hz,
-        target_frequency_hz,
-    )
-
-    lower_frequency_hz = float(j_frequencies_hz[lower_index])
-    upper_frequency_hz = float(j_frequencies_hz[upper_index])
-
-    print_frequency_summary(
-        target_frequency_hz=target_frequency_hz,
-        lower_frequency_hz=lower_frequency_hz,
-        upper_frequency_hz=upper_frequency_hz,
-        lower_index=lower_index,
-        upper_index=upper_index,
-        interpolation_weight=interpolation_weight,
-    )
-
-    element_jones, za_rad, az_rad = load_interpolated_element_jones(
-        reference_paths.jmatrix,
-        lower_index,
-        upper_index,
-        interpolation_weight,
-    )
-
-    coupling_matrix_ohm = load_interpolated_coupling_matrix(
-        reference_paths.zmatrix,
-        lower_index,
-        upper_index,
-        interpolation_weight,
-    )
-
-    lna_impedance_ohm = interpolate_lna_impedance(
-        reference_paths.lna_impedance,
-        target_frequency_hz,
-    )
-
-    z_total_ohm = np.asarray(
-        coupling_matrix_ohm
-        + (
-            np.eye(
-                MWA_NPORT,
-                dtype=np.complex128,
-            )
-            * lna_impedance_ohm
-        ),
-        dtype=np.complex128,
-    )
-
-    dipole_positions_enu_m = make_dipole_positions_enu_m()
-
-    save_runtime_archive(
-        output_path=output_path,
-        target_frequency_hz=target_frequency_hz,
-        lower_frequency_hz=lower_frequency_hz,
-        upper_frequency_hz=upper_frequency_hz,
-        lower_index=lower_index,
-        upper_index=upper_index,
-        interpolation_weight=interpolation_weight,
-        az_rad=az_rad,
-        za_rad=za_rad,
-        element_jones=element_jones,
-        coupling_matrix_ohm=coupling_matrix_ohm,
-        lna_impedance_ohm=lna_impedance_ohm,
-        z_total_ohm=z_total_ohm,
-        dipole_positions_enu_m=dipole_positions_enu_m,
-    )
-
-    print_archive_summary(
-        output_path=output_path,
-        element_jones=element_jones,
-        coupling_matrix_ohm=coupling_matrix_ohm,
-        z_total_ohm=z_total_ohm,
-        za_rad=za_rad,
-        az_rad=az_rad,
-        lna_impedance_ohm=lna_impedance_ohm,
-    )
-
-
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
@@ -1027,7 +861,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--jmatrix",
         type=Path,
-        default=None,
+        default=DEFAULT_REFERENCE_DIR / "Jmatrix.fits",
         help=(
             "Path to Jmatrix.fits. Missing files are downloaded. "
             f"Default: {DEFAULT_REFERENCE_DIR / 'Jmatrix.fits'}"
@@ -1036,7 +870,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--zmatrix",
         type=Path,
-        default=None,
+        default=DEFAULT_REFERENCE_DIR / "ZMatrix.fits",
         help=(
             "Path to ZMatrix.fits. Missing files are downloaded. "
             f"Default: {DEFAULT_REFERENCE_DIR / 'ZMatrix.fits'}"
@@ -1045,10 +879,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--lna-impedance",
         type=Path,
-        default=None,
+        default=(DEFAULT_REFERENCE_DIR / "mwa_lna_impedance.txt"),
         help=(
             "Path to mwa_lna_impedance.txt. Missing files are "
-            f"downloaded. Default: "
+            "downloaded. "
+            f"Default: "
             f"{DEFAULT_REFERENCE_DIR / 'mwa_lna_impedance.txt'}"
         ),
     )
@@ -1056,13 +891,7 @@ def parse_args() -> argparse.Namespace:
         "--output",
         type=Path,
         default=DEFAULT_OUTPUT_PATH,
-        help=f"Output .npz path. Default: {DEFAULT_OUTPUT_PATH}",
-    )
-    parser.add_argument(
-        "--target-frequency-hz",
-        type=float,
-        default=TARGET_FREQUENCY_HZ,
-        help=(f"Target frequency in Hz. Default: {TARGET_FREQUENCY_HZ:.0f}"),
+        help=(f"Output .npz path. Default: {DEFAULT_OUTPUT_PATH}"),
     )
 
     return parser.parse_args()
@@ -1072,16 +901,17 @@ def main() -> None:
     """Run the extraction process."""
     args = parse_args()
 
-    reference_paths = ensure_reference_data(
+    ensure_reference_data(
         jmatrix_path=args.jmatrix,
         zmatrix_path=args.zmatrix,
         lna_impedance_path=args.lna_impedance,
     )
 
     extract_aee_data(
-        reference_paths=reference_paths,
+        jmatrix_path=args.jmatrix,
+        zmatrix_path=args.zmatrix,
+        lna_impedance_path=args.lna_impedance,
         output_path=args.output,
-        target_frequency_hz=args.target_frequency_hz,
     )
 
 
