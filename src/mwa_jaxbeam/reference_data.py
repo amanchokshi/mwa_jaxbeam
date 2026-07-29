@@ -9,7 +9,17 @@ from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
 
-DEFAULT_DATA_DIR = Path(__file__).resolve().parent
+PACKAGE_DIR = Path(__file__).resolve().parent
+REPO_ROOT = PACKAGE_DIR.parent.parent.parent
+
+DEFAULT_REFERENCE_DIR = REPO_ROOT / "data"
+
+DEFAULT_RUNTIME_ARCHIVE = (
+    PACKAGE_DIR
+    / "data"
+    / "aee_137mhz.npz"
+)
+
 
 JMATRIX_URL = (
     "https://raw.githubusercontent.com/"
@@ -30,15 +40,13 @@ LNA_IMPEDANCE_URL = (
 
 @dataclass(frozen=True, slots=True)
 class ReferenceDataPaths:
-    """Paths to the upstream AEE reference files."""
-
     jmatrix: Path
     zmatrix: Path
     lna_impedance: Path
 
 
 def default_reference_paths(
-    data_dir: Path = DEFAULT_DATA_DIR,
+    data_dir: Path = DEFAULT_REFERENCE_DIR,
 ) -> ReferenceDataPaths:
     """Return the default local paths for the reference files."""
     data_dir = Path(data_dir)
@@ -105,7 +113,7 @@ def ensure_reference_data(
     jmatrix_path: Path | None = None,
     zmatrix_path: Path | None = None,
     lna_impedance_path: Path | None = None,
-    data_dir: Path = DEFAULT_DATA_DIR,
+    data_dir: Path = DEFAULT_REFERENCE_DIR,
 ) -> ReferenceDataPaths:
     """
     Ensure that the upstream AEE reference files are available.

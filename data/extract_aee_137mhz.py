@@ -30,8 +30,8 @@ import numpy as np
 from astropy.io import fits
 from numpy.typing import NDArray
 
-from reference_data import (
-    DEFAULT_DATA_DIR,
+from mwa_jaxbeam.reference_data import (
+    DEFAULT_REFERENCE_DIR,
     ReferenceDataPaths,
     ensure_reference_data,
 )
@@ -45,7 +45,7 @@ MWA_NDIPOLE = 16
 MWA_NPORT = MWA_NFEED * MWA_NDIPOLE
 
 DEFAULT_OUTPUT_PATH = (
-    DEFAULT_DATA_DIR.parent / "src" / "mwa_jaxbeam" / "data" / "aee_137mhz.npz"
+    DEFAULT_REFERENCE_DIR.parent / "src" / "mwa_jaxbeam" / "data" / "aee_137mhz.npz"
 )
 
 FloatArray = NDArray[np.float64]
@@ -1030,7 +1030,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help=(
             "Path to Jmatrix.fits. Missing files are downloaded. "
-            f"Default: {DEFAULT_DATA_DIR / 'Jmatrix.fits'}"
+            f"Default: {DEFAULT_REFERENCE_DIR / 'Jmatrix.fits'}"
         ),
     )
     parser.add_argument(
@@ -1039,7 +1039,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help=(
             "Path to ZMatrix.fits. Missing files are downloaded. "
-            f"Default: {DEFAULT_DATA_DIR / 'ZMatrix.fits'}"
+            f"Default: {DEFAULT_REFERENCE_DIR / 'ZMatrix.fits'}"
         ),
     )
     parser.add_argument(
@@ -1049,7 +1049,7 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Path to mwa_lna_impedance.txt. Missing files are "
             f"downloaded. Default: "
-            f"{DEFAULT_DATA_DIR / 'mwa_lna_impedance.txt'}"
+            f"{DEFAULT_REFERENCE_DIR / 'mwa_lna_impedance.txt'}"
         ),
     )
     parser.add_argument(
