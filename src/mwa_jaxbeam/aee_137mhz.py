@@ -46,6 +46,7 @@ __all__ = [
     "N_DIPOLES",
     "N_FEEDS",
     "N_PORTS",
+    "WAVENUMBER_RAD_PER_M",
     "ZA_RAD",
     "Z_TOTAL_OHM",
     "array_factor",
