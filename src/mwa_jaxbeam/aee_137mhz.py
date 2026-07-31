@@ -742,18 +742,12 @@ def jones(
 
     Notes
     -----
-    This implementation follows pyuvdata's MWA AEE convention for numerical
-    parity. The responses to the independently driven X and Y feeds are first
-    summed for each port polarization, producing one array factor for each
-    embedded-element Jones column. These factors are then applied as per-port
-    scalings of the embedded-element Jones matrix.
-
-    The alternative full matrix contraction
-
-    ``J_tile[v, d] = sum_p J_element[v, p] F[p, d]``
-
-    is not currently implemented because it does not reproduce pyuvdata's AEE
-    output.
+    The tile Jones matrix is assembled following the formulation of
+    Sutinjo et al. (2014) and the reference implementation in pyuvdata.
+    The array-factor matrix computed internally represents the responses
+    to independently driven feed excitations; these are combined to form
+    the physical per-port array factors before applying them to the
+    embedded-element Jones matrix.
     """
     element = element_jones(
         az_rad,
