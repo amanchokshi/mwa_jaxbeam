@@ -14,7 +14,7 @@ The script:
 6. Saves the arrays required by the JAX runtime model.
 
 The interpolation and preprocessing are performed in double precision. Arrays
-written to the runtime archive use float32 and complex64.
+written to the runtime archive use float64 and complex128.
 
 Run from the repository root with:
 
@@ -731,23 +731,23 @@ def save_runtime_archive(
         output_path,
         az_rad=np.asarray(
             az_rad,
-            dtype=np.float32,
+            dtype=np.float64,
         ),
         za_rad=np.asarray(
             za_rad,
-            dtype=np.float32,
+            dtype=np.float64,
         ),
         element_jones=np.asarray(
             element_jones,
-            dtype=np.complex64,
+            dtype=np.complex128,
         ),
         z_total_ohm=np.asarray(
             z_total_ohm,
-            dtype=np.complex64,
+            dtype=np.complex128,
         ),
         dipole_positions_enu_m=np.asarray(
             dipole_positions_enu_m,
-            dtype=np.float32,
+            dtype=np.float64,
         ),
     )
 
@@ -848,8 +848,8 @@ def extract_aee_data(
         f"{lna_impedance_ohm.real:.6f} "
         f"{lna_impedance_ohm.imag:+.6f}j ohm"
     )
-    print("Runtime real dtype:     float32")
-    print("Runtime complex dtype:  complex64")
+    print("Runtime real dtype:     float64")
+    print("Runtime complex dtype:  complex128")
 
 
 def parse_args() -> argparse.Namespace:
