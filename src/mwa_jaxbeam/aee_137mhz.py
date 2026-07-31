@@ -25,6 +25,12 @@ where:
 
 - axis 0 contains the sky-vector components ``(phi, theta)``;
 - axis 1 contains the driven tile feeds ``(X, Y)``.
+
+also note that the dipole orientation convention was inherited
+from pyuvdata which we compare to:
+
+- XX: East–West dipoles (X feed)
+- YY: North–South dipoles (Y feed)
 """
 
 from __future__ import annotations
