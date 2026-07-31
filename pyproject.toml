@@ -26,6 +26,7 @@ classifiers = [
 dependencies = [
     "jax>=0.6.2",
     "numpy>=2.2.6",
+    "pyuvdata",
 ]
 
 [dependency-groups]
@@ -44,3 +45,6 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mwa_jaxbeam"]
+
+[tool.uv.sources]
+pyuvdata = { git = "https://github.com/RadioAstronomySoftwareGroup/pyuvdata.git", rev = "main" }

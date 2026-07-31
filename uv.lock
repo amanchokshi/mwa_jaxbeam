@@ -1632,6 +1632,7 @@ dependencies = [
     { name = "jax", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
+    { name = "pyuvdata" },
 ]
 
 [package.dev-dependencies]
@@ -1652,6 +1653,7 @@ dev = [
 requires-dist = [
     { name = "jax", specifier = ">=0.6.2" },
     { name = "numpy", specifier = ">=2.2.6" },
+    { name = "pyuvdata", git = "https://github.com/RadioAstronomySoftwareGroup/pyuvdata.git?rev=main" },
 ]
 
 [package.metadata.requires-dev]
@@ -1663,7 +1665,7 @@ dev = [
     { name = "ipython", specifier = ">=9.15.0" },
     { name = "jupyterlab", specifier = ">=4.6.2" },
     { name = "matplotlib", specifier = ">=3.11.1" },
-    { name = "pyuvdata", specifier = ">=3.2.6" },
+    { name = "pyuvdata", git = "https://github.com/RadioAstronomySoftwareGroup/pyuvdata.git?rev=main" },
     { name = "ruff", specifier = ">=0.16.0" },
     { name = "wget", specifier = ">=3.2" },
 ]
@@ -2266,8 +2268,8 @@ wheels = [
 
 [[package]]
 name = "pyuvdata"
-version = "3.2.6"
-source = { registry = "https://pypi.org/simple" }
+version = "3.2.7.dev73+g4ad41e7e1"
+source = { git = "https://github.com/RadioAstronomySoftwareGroup/pyuvdata.git?rev=main#4ad41e7e15c6a64001888c2ab653ec1359f90b85" }
 dependencies = [
     { name = "astropy" },
     { name = "docstring-parser" },
@@ -2281,24 +2283,6 @@ dependencies = [
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "scipy", version = "1.18.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "setuptools-scm" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/df/1f/eefd1b3f951c54af5fa41a5c2c51ebe6488d16d8db702272a2157a987c6c/pyuvdata-3.2.6.tar.gz", hash = "sha256:94eca423e0a2ee8bfe41638d4c3e80af6d367ba81ee767264f03f5a368fe7fa6", size = 11797139, upload-time = "2026-04-13T20:00:30.183Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/59/a4/67927bf8759b4e5698b202d494ba63d3586d67b4586359c3442a1c86bd59/pyuvdata-3.2.6-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:ff033f0d046986f38730154e6d30b5a4b509b1541513cd7507361f2f735fd826", size = 5135819, upload-time = "2026-04-13T20:00:08.185Z" },
-    { url = "https://files.pythonhosted.org/packages/50/2a/8e514fdd4b567983dcaacc97e83b3d3c18c9ce628613cb471a5e581615c7/pyuvdata-3.2.6-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:788fe93e7709feebed5d651ad1ee5f5904c31d63bf8a4557dfaf47767e6225ed", size = 5119170, upload-time = "2026-04-13T20:00:09.699Z" },
-    { url = "https://files.pythonhosted.org/packages/ea/1e/34d6f2df92c569d4a4b11a9e286f21021cbc2a1a4fe550c6c6bff73fc535/pyuvdata-3.2.6-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:1275a781631cee608dc8cfe0f5ab2f60751f526b1962688058263d6238f0a14c", size = 7523104, upload-time = "2026-04-13T20:00:11.435Z" },
-    { url = "https://files.pythonhosted.org/packages/be/68/50e2c304ea21b379287bc3b03dfef6514ef3897f3996cd4c57c0e364e5c7/pyuvdata-3.2.6-cp311-cp311-win_amd64.whl", hash = "sha256:b91eb1acc72f71cf1aed7416b28ec8ab9e4bd7430ce80fb842b28ffbeb4b36a8", size = 4125714, upload-time = "2026-04-13T20:00:12.832Z" },
-    { url = "https://files.pythonhosted.org/packages/f5/09/25235b131c4b8a92827529268c4a7b23eef96e9d41c41eb31bffd024e1e8/pyuvdata-3.2.6-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:0067f7ff385f85dce2afc7999ebef5c1f3f9648937d7d5c1d463ad1a27cab278", size = 5133804, upload-time = "2026-04-13T20:00:14.543Z" },
-    { url = "https://files.pythonhosted.org/packages/c4/f2/c9f1c09c150083b7d991207d3669e59c9d58731345f2c12cfa3b0b61729d/pyuvdata-3.2.6-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:357ce5b2759e95f30337928e2ccdfaa8e6f668c3328933c8b22a4d70921ef2c0", size = 5118782, upload-time = "2026-04-13T20:00:16.208Z" },
-    { url = "https://files.pythonhosted.org/packages/85/01/14e1794b4ee1736ab337a3e5ba54a3ba65a22757a991e04c7f485229ac54/pyuvdata-3.2.6-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:f2dddbdafde078f7dcfbe7bbee4a01d30a4d2651ce8d1461aaf71cb800174d7a", size = 7534008, upload-time = "2026-04-13T20:00:17.605Z" },
-    { url = "https://files.pythonhosted.org/packages/68/14/1f242262bb0a085691f247fb68f821c6ab52cbca6628046c845faf94753e/pyuvdata-3.2.6-cp312-cp312-win_amd64.whl", hash = "sha256:a8cb481902e71d8a866d540163cc0a0fd11f346eb24fb6564cc88db4f3494338", size = 4129975, upload-time = "2026-04-13T20:00:18.864Z" },
-    { url = "https://files.pythonhosted.org/packages/f2/3b/f332de031cbf1e2e03f6172830d0b34bfce28e1354dadef033becead2b0e/pyuvdata-3.2.6-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:da60e856ac83ac3e69541a18fe6d2a4884b9c477d249a2d05047124741df9424", size = 5130165, upload-time = "2026-04-13T20:00:20.077Z" },
-    { url = "https://files.pythonhosted.org/packages/5b/22/ee2c6be189c0710921b1baa7cca176268417f33322c06000d7831a549168/pyuvdata-3.2.6-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:7f0044892f4a607db4a36178aff0559aadce31fc302582a9057712eeb324d574", size = 5115034, upload-time = "2026-04-13T20:00:21.373Z" },
-    { url = "https://files.pythonhosted.org/packages/9f/cb/36dbfef9df6596875b7af9ebb787203f16de4c0684418e2b8c6f7011a4aa/pyuvdata-3.2.6-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:905adab9541de5c729c0b640a766894918506d97a44853959d0a993a74187f44", size = 7533984, upload-time = "2026-04-13T20:00:22.876Z" },
-    { url = "https://files.pythonhosted.org/packages/15/ae/79b11a6d9b13a107cfb1f30f2f390f25b32eb548f3c8ef614cd87fd74305/pyuvdata-3.2.6-cp313-cp313-win_amd64.whl", hash = "sha256:bfe58f8b90fe747396ab12b0dfc876d9839294277abbd55bb8a490344d64d355", size = 4131728, upload-time = "2026-04-13T20:00:24.287Z" },
-    { url = "https://files.pythonhosted.org/packages/f4/90/55455cee86c82c1b00d965f0cad334a4372cbd1c19b9a621687ed61fd8d1/pyuvdata-3.2.6-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:c3a88ba556ba006a428a2dca2d18578155806f4c29c8b1cf20003b6349459ec7", size = 5133304, upload-time = "2026-04-13T20:00:25.642Z" },
-    { url = "https://files.pythonhosted.org/packages/97/14/0e2622401ac77567c652f3d174036d8f5de1af0dedddd82384223b1105f9/pyuvdata-3.2.6-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:49992ffdd120ceb35395517cf887190b482568fcc14d79361a5b9e962221e3bd", size = 7527367, upload-time = "2026-04-13T20:00:26.989Z" },
-    { url = "https://files.pythonhosted.org/packages/f2/fa/fed83de8e161d46a74702d048fe5c01c3e520a9338ce97b1659f7171b829/pyuvdata-3.2.6-cp314-cp314-win_amd64.whl", hash = "sha256:7ec8ae66794bd415be429197cae671bde8310c3aac163fc0dfb874e30c2f579b", size = 4137706, upload-time = "2026-04-13T20:00:28.687Z" },
 ]
 
 [[package]]
