@@ -37,13 +37,9 @@ import jax.numpy as jnp
 
 from mwa_jaxbeam.aee_137mhz import jones
 
-az_rad = jnp.deg2rad(
-    jnp.linspace(0.0, 360.0, 361)
-)
+az_rad = jnp.deg2rad(jnp.linspace(0.0, 360.0, 361))
 
-za_rad = jnp.deg2rad(
-    jnp.linspace(0.0, 90.0, 91)
-)
+za_rad = jnp.deg2rad(jnp.linspace(0.0, 90.0, 91))
 
 az_grid, za_grid = jnp.meshgrid(
     az_rad,

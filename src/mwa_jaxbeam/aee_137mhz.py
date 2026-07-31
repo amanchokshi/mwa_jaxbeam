@@ -37,7 +37,6 @@ import numpy as np
 from jax import Array
 from numpy.typing import ArrayLike
 
-
 __all__ = [
     "AZIMUTH_RAD",
     "DIPOLE_POSITIONS_ENU_M",
@@ -714,6 +713,7 @@ def array_factor(
 #         (0, 1),
 #     )
 
+
 def jones(
     az_rad: ArrayLike,
     za_rad: ArrayLike,
@@ -776,10 +776,7 @@ def jones(
     #
     # Apply the corresponding array factor to each Jones column. This
     # deliberately follows pyuvdata's MWA AEE implementation.
-    return (
-        element
-        * port_array_factor[jnp.newaxis, ...]
-    )
+    return element * port_array_factor[jnp.newaxis, ...]
 
 
 def coherency(

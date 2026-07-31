@@ -6,7 +6,6 @@ from pathlib import Path
 
 import wget
 
-
 PACKAGE_DIR = Path(__file__).resolve().parent
 REPO_ROOT = PACKAGE_DIR.parent.parent
 
@@ -38,9 +37,7 @@ def download_if_missing(path: Path, url: str) -> None:
         return
 
     if path.exists():
-        raise FileExistsError(
-            f"{path} exists but is not a regular file."
-        )
+        raise FileExistsError(f"{path} exists but is not a regular file.")
 
     print(f"Downloading {path.name}")
     path.parent.mkdir(parents=True, exist_ok=True)
