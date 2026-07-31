@@ -35,7 +35,6 @@ from mwa_jaxbeam.reference_data import (
     ensure_reference_data,
 )
 
-
 TARGET_FREQUENCY_HZ = 137e6
 
 MWA_DIPOLE_SPACING_M = 1.1
