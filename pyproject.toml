@@ -28,6 +28,11 @@ dependencies = [
     "numpy>=2.2.6",
 ]
 
+[project.urls]
+Homepage = "https://github.com/amanchokshi/mwa_jaxbeam"
+Repository = "https://github.com/amanchokshi/mwa_jaxbeam"
+Issues = "https://github.com/amanchokshi/mwa_jaxbeam/issues"
+
 [dependency-groups]
 dev = [
     "astropy>=6.1.7",
