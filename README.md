@@ -4,8 +4,6 @@
 
 The package reproduces the 137 MHz AEE model distributed with `pyuvdata` while providing a differentiable implementation suitable for optimization and inference problems. It is designed for applications such as satellite-based beam calibration, where the beam model must be evaluated millions of times and differentiated with respect to instrument parameters.
 
-# mwa_jaxbeam
-
 > [!WARNING]
 > This is **experimental software**. At present, only the **137 MHz** MWA AEE beam model with **zenith pointing** is implemented.
 
