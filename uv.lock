@@ -1730,7 +1730,6 @@ dependencies = [
     { name = "jax", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
-    { name = "pyuvdata" },
 ]
 
 [package.dev-dependencies]
@@ -1755,7 +1754,6 @@ dev = [
 requires-dist = [
     { name = "jax", specifier = ">=0.6.2" },
     { name = "numpy", specifier = ">=2.2.6" },
-    { name = "pyuvdata", git = "https://github.com/RadioAstronomySoftwareGroup/pyuvdata.git?rev=main" },
 ]
 
 [package.metadata.requires-dev]
