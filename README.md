@@ -18,6 +18,12 @@ The package reproduces the 137 MHz AEE model distributed with `pyuvdata` while p
 ## Installation
 
 ```bash
+pip install mwa-jaxbeam
+```
+
+or
+
+```bash
 git clone https://github.com/amanchokshi/mwa_jaxbeam.git
 cd mwa_jaxbeam
 
