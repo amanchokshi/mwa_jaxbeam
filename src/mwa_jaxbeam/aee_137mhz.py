@@ -647,6 +647,73 @@ def array_factor(
     )
 
 
+# def jones(
+#     az_rad: ArrayLike,
+#     za_rad: ArrayLike,
+#     excitations: ArrayLike | None = None,
+# ) -> Array:
+#     """
+#     Evaluate the full 137 MHz MWA tile Jones matrix.
+#
+#     Parameters
+#     ----------
+#     az_rad
+#         Azimuth in radians, measured eastward from North.
+#     za_rad
+#         Zenith angle in radians.
+#     excitations
+#         Real or complex dipole excitations. See :func:`port_currents`.
+#
+#     Returns
+#     -------
+#     tile_jones
+#         Complex Jones matrix with shape
+#         ``(2, 2, *broadcast_shape)``.
+#
+#         Axis zero contains the sky-vector components ``(phi, theta)``.
+#         Axis one contains the independently driven tile feeds ``(X, Y)``.
+#     """
+#     element = element_jones(
+#         az_rad,
+#         za_rad,
+#     )
+#
+#     factor = array_factor(
+#         az_rad,
+#         za_rad,
+#         excitations,
+#     )
+#
+#     # Move the two matrix axes to the end:
+#     #
+#     # element_matrix: (..., sky component, port polarization)
+#     # factor_matrix:  (..., port polarization, driven feed)
+#     element_matrix = jnp.moveaxis(
+#         element,
+#         (0, 1),
+#         (-2, -1),
+#     )
+#
+#     factor_matrix = jnp.moveaxis(
+#         factor,
+#         (0, 1),
+#         (-2, -1),
+#     )
+#
+#     # Matrix multiplication sums over the port-polarization axis:
+#     # (..., sky component, port polarization)
+#     # @
+#     # (..., port polarization, driven feed)
+#     # ->
+#     # (..., sky component, driven feed)
+#     tile_jones = element_matrix @ factor_matrix
+#
+#     return jnp.moveaxis(
+#         tile_jones,
+#         (-2, -1),
+#         (0, 1),
+#     )
+
 def jones(
     az_rad: ArrayLike,
     za_rad: ArrayLike,
@@ -671,7 +738,22 @@ def jones(
         ``(2, 2, *broadcast_shape)``.
 
         Axis zero contains the sky-vector components ``(phi, theta)``.
-        Axis one contains the independently driven tile feeds ``(X, Y)``.
+        Axis one contains the tile feeds ``(X, Y)``.
+
+    Notes
+    -----
+    This implementation follows pyuvdata's MWA AEE convention for numerical
+    parity. The responses to the independently driven X and Y feeds are first
+    summed for each port polarization, producing one array factor for each
+    embedded-element Jones column. These factors are then applied as per-port
+    scalings of the embedded-element Jones matrix.
+
+    The alternative full matrix contraction
+
+    ``J_tile[v, d] = sum_p J_element[v, p] F[p, d]``
+
+    is not currently implemented because it does not reproduce pyuvdata's AEE
+    output.
     """
     element = element_jones(
         az_rad,
@@ -684,34 +766,25 @@ def jones(
         excitations,
     )
 
-    # Move the two matrix axes to the end:
+    # factor has shape:
+    #     (2 port polarizations, 2 driven feeds, *broadcast_shape)
     #
-    # element_matrix: (..., sky component, port polarization)
-    # factor_matrix:  (..., port polarization, driven feed)
-    element_matrix = jnp.moveaxis(
-        element,
-        (0, 1),
-        (-2, -1),
-    )
-
-    factor_matrix = jnp.moveaxis(
+    # pyuvdata combines the independently driven-feed responses to form one
+    # array factor for each port polarization:
+    #     (2 port polarizations, *broadcast_shape)
+    port_array_factor = jnp.sum(
         factor,
-        (0, 1),
-        (-2, -1),
+        axis=1,
     )
 
-    # Matrix multiplication sums over the port-polarization axis:
-    # (..., sky component, port polarization)
-    # @
-    # (..., port polarization, driven feed)
-    # ->
-    # (..., sky component, driven feed)
-    tile_jones = element_matrix @ factor_matrix
-
-    return jnp.moveaxis(
-        tile_jones,
-        (-2, -1),
-        (0, 1),
+    # element has shape:
+    #     (2 sky-vector components, 2 port polarizations, *broadcast_shape)
+    #
+    # Apply the corresponding array factor to each Jones column. This
+    # deliberately follows pyuvdata's MWA AEE implementation.
+    return (
+        element
+        * port_array_factor[jnp.newaxis, ...]
     )
 
 
