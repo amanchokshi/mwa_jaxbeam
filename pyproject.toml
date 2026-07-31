@@ -38,6 +38,10 @@ dev = [
     "ipython>=9.15.0",
     "jupyterlab>=4.6.2",
     "matplotlib>=3.11.1",
+    "poethepoet>=0.48.0",
+    "pyright>=1.1.411",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
     "pyuvdata>=3.2.6",
     "ruff>=0.16.0",
     "wget>=3.2",
@@ -48,3 +52,49 @@ packages = ["src/mwa_jaxbeam"]
 
 [tool.uv.sources]
 pyuvdata = { git = "https://github.com/RadioAstronomySoftwareGroup/pyuvdata.git", rev = "main" }
+
+[tool.poe.tasks]
+fmt = "ruff format"
+lint = "ruff check --fix"
+check = "pyright"
+test = { cmd = "pytest", env = { PYTHONPATH = "src" } }
+coverage = { cmd = "pytest --cov=mwa_jaxbeam --cov-report=term-missing", env = { PYTHONPATH = "src" } }
+all = ["fmt", "lint", "check", "coverage"]
+
+
+[tool.coverage.run]
+source = ["mwa_jaxbeam"]
+patch = ["subprocess"]
+omit = [
+    "src/mwa_jaxbeam/reference_data.py",
+]
+
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+src = ["src", "tests"]
+
+
+[tool.ruff.lint]
+select = [
+    "A",  # built-in shadowing
+    "E",  # style errors
+    "F",  # Pyflakes
+    "I",  # import sorting
+    "N",  # naming
+]
+
+
+[tool.ruff.lint.isort]
+known-first-party = ["mwa_jaxbeam"]
+
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.14"
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+include = ["src"]
+exclude = ["tests", "**/__pycache__"]
