@@ -42,9 +42,7 @@ MWA_NFEED = 2
 MWA_NDIPOLE = 16
 MWA_NPORT = MWA_NFEED * MWA_NDIPOLE
 
-DEFAULT_OUTPUT_PATH = (
-    DEFAULT_REFERENCE_DIR.parent / "src" / "mwa_jaxbeam" / "data" / "aee_137mhz.npz"
-)
+DEFAULT_OUTPUT_PATH = DEFAULT_REFERENCE_DIR.parent / "src" / "mwa_jaxbeam" / "data" / "aee_137mhz.npz"
 
 FloatArray = NDArray[np.float64]
 ComplexArray = NDArray[np.complex128]
@@ -93,13 +91,10 @@ def validate_frequency_grids(
         rtol=0.0,
         atol=1e-6,
     ):
-        maximum_difference_hz = float(
-            np.max(np.abs(j_frequencies_hz - z_frequencies_hz))
-        )
+        maximum_difference_hz = float(np.max(np.abs(j_frequencies_hz - z_frequencies_hz)))
 
         raise ValueError(
-            "J- and Z-matrix frequency grids do not match. "
-            f"Maximum difference: {maximum_difference_hz:.6f} Hz."
+            f"J- and Z-matrix frequency grids do not match. Maximum difference: {maximum_difference_hz:.6f} Hz."
         )
 
 
@@ -169,9 +164,7 @@ def find_frequency_bracket(
     lower_frequency_hz = frequencies_hz[lower_index]
     upper_frequency_hz = frequencies_hz[upper_index]
 
-    weight = (target_frequency_hz - lower_frequency_hz) / (
-        upper_frequency_hz - lower_frequency_hz
-    )
+    weight = (target_frequency_hz - lower_frequency_hz) / (upper_frequency_hz - lower_frequency_hz)
 
     return lower_index, upper_index, float(weight)
 
@@ -186,19 +179,12 @@ def interpolate_complex(
     upper = np.asarray(upper, dtype=np.complex128)
 
     if lower.shape != upper.shape:
-        raise ValueError(
-            "Cannot interpolate arrays with different shapes: "
-            f"{lower.shape} and {upper.shape}."
-        )
+        raise ValueError(f"Cannot interpolate arrays with different shapes: {lower.shape} and {upper.shape}.")
 
     if not 0.0 <= weight <= 1.0:
         raise ValueError(f"Interpolation weight must lie in [0, 1], got {weight}.")
 
-    return (
-        (1.0 - weight) * lower.real
-        + weight * upper.real
-        + 1j * ((1.0 - weight) * lower.imag + weight * upper.imag)
-    )
+    return (1.0 - weight) * lower.real + weight * upper.real + 1j * ((1.0 - weight) * lower.imag + weight * upper.imag)
 
 
 def validate_jmatrix_table(
@@ -218,8 +204,7 @@ def validate_jmatrix_table(
     """
     if data.ndim != 2 or data.shape[1] < 10:
         raise ValueError(
-            "Expected a two-dimensional J-matrix table with at least "
-            f"10 columns, got shape {data.shape} from {path}."
+            f"Expected a two-dimensional J-matrix table with at least 10 columns, got shape {data.shape} from {path}."
         )
 
     raw_theta_deg = np.asarray(
@@ -372,9 +357,7 @@ def remove_duplicate_azimuth_samples(
         raise ValueError("Azimuth coordinates must be one-dimensional.")
 
     if element_jones.shape[-1] != az_rad.size:
-        raise ValueError(
-            "The final Jones axis does not match the azimuth coordinate size."
-        )
+        raise ValueError("The final Jones axis does not match the azimuth coordinate size.")
 
     duplicate_indices = np.flatnonzero(
         np.isclose(
@@ -441,10 +424,7 @@ def load_element_jones_at_index(
     """
     with fits.open(path, memmap=True) as hdul:
         if not 0 <= frequency_index < len(hdul):
-            raise IndexError(
-                f"Frequency index {frequency_index} is outside "
-                f"{path}, which has {len(hdul)} HDUs."
-            )
+            raise IndexError(f"Frequency index {frequency_index} is outside {path}, which has {len(hdul)} HDUs.")
 
         hdu = hdul[frequency_index]
 
@@ -511,9 +491,7 @@ def load_interpolated_element_jones(
         rtol=0.0,
         atol=1e-12,
     ):
-        raise ValueError(
-            "Zenith-angle grids differ between the bracketing J-matrix HDUs."
-        )
+        raise ValueError("Zenith-angle grids differ between the bracketing J-matrix HDUs.")
 
     if not np.allclose(
         lower_az_rad,
@@ -544,10 +522,7 @@ def load_coupling_matrix_at_index(
     """
     with fits.open(path, memmap=True) as hdul:
         if not 0 <= frequency_index < len(hdul):
-            raise IndexError(
-                f"Frequency index {frequency_index} is outside "
-                f"{path}, which has {len(hdul)} HDUs."
-            )
+            raise IndexError(f"Frequency index {frequency_index} is outside {path}, which has {len(hdul)} HDUs.")
 
         hdu = hdul[frequency_index]
 
@@ -566,9 +541,7 @@ def load_coupling_matrix_at_index(
     )
 
     if data.shape != expected_shape:
-        raise ValueError(
-            f"Expected Z-matrix data with shape {expected_shape}, got {data.shape}."
-        )
+        raise ValueError(f"Expected Z-matrix data with shape {expected_shape}, got {data.shape}.")
 
     magnitude = data[0]
     phase_rad = data[1]
@@ -626,19 +599,13 @@ def interpolate_lna_impedance(
     )
 
     if data.ndim != 2 or data.shape[1] < 3:
-        raise ValueError(
-            f"Expected at least three columns in {path}, got shape {data.shape}."
-        )
+        raise ValueError(f"Expected at least three columns in {path}, got shape {data.shape}.")
 
     impedance_frequency_hz = data[:, 0]
     impedance_real_ohm = data[:, 1]
     impedance_imag_ohm = data[:, 2]
 
-    finite = (
-        np.isfinite(impedance_frequency_hz)
-        & np.isfinite(impedance_real_ohm)
-        & np.isfinite(impedance_imag_ohm)
-    )
+    finite = np.isfinite(impedance_frequency_hz) & np.isfinite(impedance_real_ohm) & np.isfinite(impedance_imag_ohm)
 
     impedance_frequency_hz = impedance_frequency_hz[finite]
     impedance_real_ohm = impedance_real_ohm[finite]
@@ -837,43 +804,27 @@ def extract_aee_data(
     print(f"Z-total shape:          {z_total_ohm.shape}")
     print(f"Zenith-angle samples:   {za_rad.size}")
     print(f"Azimuth samples:        {az_rad.size}")
-    print(
-        "Azimuth range:          "
-        f"{np.rad2deg(az_rad[0]):.6f}--"
-        f"{np.rad2deg(az_rad[-1]):.6f} degrees"
-    )
-    print(
-        "LNA impedance:          "
-        f"{lna_impedance_ohm.real:.6f} "
-        f"{lna_impedance_ohm.imag:+.6f}j ohm"
-    )
+    print(f"Azimuth range:          {np.rad2deg(az_rad[0]):.6f}--{np.rad2deg(az_rad[-1]):.6f} degrees")
+    print(f"LNA impedance:          {lna_impedance_ohm.real:.6f} {lna_impedance_ohm.imag:+.6f}j ohm")
     print("Runtime real dtype:     float64")
     print("Runtime complex dtype:  complex128")
 
 
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(
-        description=("Extract and interpolate the MWA AEE model to 137 MHz.")
-    )
+    parser = argparse.ArgumentParser(description=("Extract and interpolate the MWA AEE model to 137 MHz."))
 
     parser.add_argument(
         "--jmatrix",
         type=Path,
         default=DEFAULT_REFERENCE_DIR / "Jmatrix.fits",
-        help=(
-            "Path to Jmatrix.fits. Missing files are downloaded. "
-            f"Default: {DEFAULT_REFERENCE_DIR / 'Jmatrix.fits'}"
-        ),
+        help=(f"Path to Jmatrix.fits. Missing files are downloaded. Default: {DEFAULT_REFERENCE_DIR / 'Jmatrix.fits'}"),
     )
     parser.add_argument(
         "--zmatrix",
         type=Path,
         default=DEFAULT_REFERENCE_DIR / "ZMatrix.fits",
-        help=(
-            "Path to ZMatrix.fits. Missing files are downloaded. "
-            f"Default: {DEFAULT_REFERENCE_DIR / 'ZMatrix.fits'}"
-        ),
+        help=(f"Path to ZMatrix.fits. Missing files are downloaded. Default: {DEFAULT_REFERENCE_DIR / 'ZMatrix.fits'}"),
     )
     parser.add_argument(
         "--lna-impedance",

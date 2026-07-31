@@ -64,9 +64,7 @@ def test_array_factor_zenith_is_azimuth_independent() -> None:
     excitations = np.ones((2, 16), dtype=np.complex64)
     azimuths = np.deg2rad(np.array([0.0, 45.0, 90.0, 180.0, 270.0, 359.0]))
 
-    factor = np.asarray(
-        array_factor(az_rad=azimuths, za_rad=0.0, excitations=excitations)
-    )
+    factor = np.asarray(array_factor(az_rad=azimuths, za_rad=0.0, excitations=excitations))
     expected = np.asarray(array_factor(az_rad=0.0, za_rad=0.0, excitations=excitations))
     expected = np.broadcast_to(expected[:, :, np.newaxis], factor.shape)
 
@@ -84,9 +82,7 @@ def test_array_factor_scalar_independent_reconstruction() -> None:
     phase = np.exp(1j * WAVENUMBER_RAD_PER_M * path)
     expected = np.sum(currents * phase[np.newaxis, np.newaxis, :], axis=-1)
 
-    actual = np.asarray(
-        array_factor(az_rad=az_rad, za_rad=za_rad, excitations=excitations)
-    )
+    actual = np.asarray(array_factor(az_rad=az_rad, za_rad=za_rad, excitations=excitations))
 
     np.testing.assert_allclose(actual, expected, rtol=1e-6, atol=1e-7)
     np.testing.assert_allclose(np.abs(phase), 1.0, rtol=1e-6, atol=1e-7)
@@ -111,9 +107,7 @@ def test_array_factor_grid_independent_reconstruction() -> None:
         axis=-1,
     )
 
-    actual = np.asarray(
-        array_factor(az_rad=az_grid, za_rad=za_grid, excitations=excitations)
-    )
+    actual = np.asarray(array_factor(az_rad=az_grid, za_rad=za_grid, excitations=excitations))
 
     np.testing.assert_allclose(actual, expected, rtol=1e-6, atol=1e-7)
 

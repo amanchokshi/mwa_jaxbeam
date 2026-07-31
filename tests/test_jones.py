@@ -18,9 +18,7 @@ def test_jones_output_shapes_and_finiteness() -> None:
 
     az_grid = np.deg2rad(np.linspace(0.0, 360.0, 13, endpoint=False))
     za_grid = np.deg2rad(np.linspace(0.0, 90.0, 7))
-    grid = np.asarray(
-        jones(az_rad=az_grid[np.newaxis, :], za_rad=za_grid[:, np.newaxis])
-    )
+    grid = np.asarray(jones(az_rad=az_grid[np.newaxis, :], za_rad=za_grid[:, np.newaxis]))
     assert grid.shape == (2, 2, za_grid.size, az_grid.size)
     assert np.iscomplexobj(grid)
     assert np.all(np.isfinite(grid))
@@ -48,9 +46,7 @@ def test_jones_scalar_pyuvdata_compatible_reconstruction() -> None:
     excitations = np.ones((2, 16), dtype=np.complex64)
 
     element = np.asarray(element_jones(az_rad=az_rad, za_rad=za_rad))
-    factor = np.asarray(
-        array_factor(az_rad=az_rad, za_rad=za_rad, excitations=excitations)
-    )
+    factor = np.asarray(array_factor(az_rad=az_rad, za_rad=za_rad, excitations=excitations))
     expected = element * np.sum(factor, axis=1)[np.newaxis, :]
     actual = np.asarray(jones(az_rad=az_rad, za_rad=za_rad, excitations=excitations))
 
@@ -65,9 +61,7 @@ def test_jones_grid_pyuvdata_compatible_reconstruction() -> None:
     excitations = np.ones((2, 16), dtype=np.complex64)
 
     element = np.asarray(element_jones(az_rad=az_grid, za_rad=za_grid))
-    factor = np.asarray(
-        array_factor(az_rad=az_grid, za_rad=za_grid, excitations=excitations)
-    )
+    factor = np.asarray(array_factor(az_rad=az_grid, za_rad=za_grid, excitations=excitations))
     expected = element * np.sum(factor, axis=1)[np.newaxis, ...]
     actual = np.asarray(jones(az_rad=az_grid, za_rad=za_grid, excitations=excitations))
 

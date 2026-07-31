@@ -12,12 +12,8 @@ from mwa_jaxbeam import (
 
 def test_accepted_excitation_representations_are_equivalent() -> None:
     scalar = np.asarray(port_currents(excitations=1.0))
-    per_dipole = np.asarray(
-        port_currents(excitations=np.ones(N_DIPOLES, dtype=np.complex64))
-    )
-    per_feed_dipole = np.asarray(
-        port_currents(excitations=np.ones((N_FEEDS, N_DIPOLES), dtype=np.complex64))
-    )
+    per_dipole = np.asarray(port_currents(excitations=np.ones(N_DIPOLES, dtype=np.complex64)))
+    per_feed_dipole = np.asarray(port_currents(excitations=np.ones((N_FEEDS, N_DIPOLES), dtype=np.complex64)))
 
     expected_shape = (N_FEEDS, N_FEEDS, N_DIPOLES)
     for currents in (scalar, per_dipole, per_feed_dipole):

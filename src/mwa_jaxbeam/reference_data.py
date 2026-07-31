@@ -11,15 +11,9 @@ REPO_ROOT = PACKAGE_DIR.parent.parent
 
 DEFAULT_REFERENCE_DIR = REPO_ROOT / "data"
 
-JMATRIX_URL = (
-    "https://raw.githubusercontent.com/"
-    "MWATelescope/mwa_pb/master/mwa_pb/data/Jmatrix.fits"
-)
+JMATRIX_URL = "https://raw.githubusercontent.com/MWATelescope/mwa_pb/master/mwa_pb/data/Jmatrix.fits"
 
-ZMATRIX_URL = (
-    "https://raw.githubusercontent.com/"
-    "MWATelescope/mwa_pb/master/mwa_pb/data/ZMatrix.fits"
-)
+ZMATRIX_URL = "https://raw.githubusercontent.com/MWATelescope/mwa_pb/master/mwa_pb/data/ZMatrix.fits"
 
 LNA_IMPEDANCE_URL = (
     "https://raw.githubusercontent.com/"

@@ -162,10 +162,7 @@ def _validate_model_data() -> None:
     )
 
     if ELEMENT_JONES.shape != expected_jones_shape:
-        raise ValueError(
-            "Unexpected element-Jones shape. Expected "
-            f"{expected_jones_shape}, got {ELEMENT_JONES.shape}."
-        )
+        raise ValueError(f"Unexpected element-Jones shape. Expected {expected_jones_shape}, got {ELEMENT_JONES.shape}.")
 
     expected_impedance_shape = (
         N_PORTS,
@@ -174,8 +171,7 @@ def _validate_model_data() -> None:
 
     if Z_TOTAL_OHM.shape != expected_impedance_shape:
         raise ValueError(
-            "Unexpected total-impedance shape. Expected "
-            f"{expected_impedance_shape}, got {Z_TOTAL_OHM.shape}."
+            f"Unexpected total-impedance shape. Expected {expected_impedance_shape}, got {Z_TOTAL_OHM.shape}."
         )
 
     expected_position_shape = (
@@ -185,9 +181,7 @@ def _validate_model_data() -> None:
 
     if DIPOLE_POSITIONS_ENU_M.shape != expected_position_shape:
         raise ValueError(
-            "Unexpected dipole-position shape. Expected "
-            f"{expected_position_shape}, got "
-            f"{DIPOLE_POSITIONS_ENU_M.shape}."
+            f"Unexpected dipole-position shape. Expected {expected_position_shape}, got {DIPOLE_POSITIONS_ENU_M.shape}."
         )
 
     azimuth_rad = np.asarray(AZIMUTH_RAD)
@@ -197,17 +191,13 @@ def _validate_model_data() -> None:
         raise ValueError("The model azimuth coordinates contain non-finite values.")
 
     if not np.all(np.isfinite(zenith_angle_rad)):
-        raise ValueError(
-            "The model zenith-angle coordinates contain non-finite values."
-        )
+        raise ValueError("The model zenith-angle coordinates contain non-finite values.")
 
     if not np.all(np.diff(azimuth_rad) > 0.0):
         raise ValueError("The model azimuth coordinates must be strictly increasing.")
 
     if not np.all(np.diff(zenith_angle_rad) > 0.0):
-        raise ValueError(
-            "The model zenith-angle coordinates must be strictly increasing."
-        )
+        raise ValueError("The model zenith-angle coordinates must be strictly increasing.")
 
 
 _validate_model_data()
@@ -864,9 +854,7 @@ def coherency(
 
         zenith_power = jnp.real(jnp.diag(zenith_response))
 
-        normalization = jnp.sqrt(
-            zenith_power[:, jnp.newaxis] * zenith_power[jnp.newaxis, :]
-        )
+        normalization = jnp.sqrt(zenith_power[:, jnp.newaxis] * zenith_power[jnp.newaxis, :])
 
         response = response / normalization
 

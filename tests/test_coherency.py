@@ -25,9 +25,7 @@ def test_coherency_is_hermitian_positive_semidefinite() -> None:
     za = np.deg2rad(np.array([10.0, 35.0, 60.0]))
     response = np.asarray(coherency(az_rad=az, za_rad=za))
 
-    np.testing.assert_allclose(
-        response[1, 0], response[0, 1].conj(), rtol=1e-6, atol=1e-7
-    )
+    np.testing.assert_allclose(response[1, 0], response[0, 1].conj(), rtol=1e-6, atol=1e-7)
     np.testing.assert_allclose(response[0, 0].imag, 0.0, atol=1e-7)
     np.testing.assert_allclose(response[1, 1].imag, 0.0, atol=1e-7)
 
