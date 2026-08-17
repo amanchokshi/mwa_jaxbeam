@@ -13,9 +13,15 @@ Zenith angle is measured downward from zenith:
     za = 0       Zenith
     za = pi / 2  Horizon
 
-The model accepts real or complex dipole-port excitations. Real values
-represent amplitude-only excitation, while complex values additionally
-represent per-dipole phase offsets.
+The model separates two per-dipole controls:
+
+- ``dipole_flags`` are boolean participation flags applied to the port-driving
+  voltages before the mutually coupled impedance solve;
+- ``dipole_gains`` are real or complex post-current gains applied to each
+  driven-feed/dipole contribution before the geometric array-factor sum.
+
+With all dipoles enabled and unity gains, the model reduces to the nominal AEE
+beam.
 
 The returned Jones matrix has shape::
 
@@ -152,7 +158,12 @@ WAVENUMBER_RAD_PER_M: Final[Array] = jnp.asarray(
     dtype=REAL_DTYPE,
 )
 
-_DEFAULT_EXCITATIONS: Final[Array] = jnp.ones(
+_DEFAULT_DIPOLE_FLAGS: Final[Array] = jnp.ones(
+    (N_FEEDS, N_DIPOLES),
+    dtype=jnp.bool_,
+)
+
+_DEFAULT_DIPOLE_GAINS: Final[Array] = jnp.ones(
     (N_FEEDS, N_DIPOLES),
     dtype=COMPLEX_DTYPE,
 )
@@ -209,50 +220,96 @@ def _validate_model_data() -> None:
 _validate_model_data()
 
 
-def _as_excitations(
-    excitations: ArrayLike | None,
+def _as_dipole_flags(
+    dipole_flags: ArrayLike | None,
 ) -> Array:
     """
-    Convert dipole excitations to shape ``(2, 16)``.
+    Convert dipole flags to boolean shape ``(2, 16)``.
 
     Accepted inputs are:
 
-    - ``None``: unity excitation for every dipole;
+    - ``None``: every dipole is enabled;
+    - boolean scalar: broadcast to all dipoles and both feeds;
+    - boolean shape ``(16,)``: copied across both feeds;
+    - boolean shape ``(2, 16)``: separate X and Y flags.
+    """
+    if dipole_flags is None:
+        return _DEFAULT_DIPOLE_FLAGS
+
+    flag_array = jnp.asarray(dipole_flags)
+
+    if not jnp.issubdtype(flag_array.dtype, jnp.bool_):
+        raise ValueError(f"dipole_flags must contain boolean values; got dtype {flag_array.dtype}.")
+
+    if flag_array.ndim == 0:
+        return jnp.full(
+            (N_FEEDS, N_DIPOLES),
+            flag_array,
+            dtype=jnp.bool_,
+        )
+
+    if flag_array.shape == (N_DIPOLES,):
+        return jnp.broadcast_to(
+            flag_array[jnp.newaxis, :],
+            (N_FEEDS, N_DIPOLES),
+        )
+
+    if flag_array.shape == (N_FEEDS, N_DIPOLES):
+        return flag_array
+
+    raise ValueError(
+        "dipole_flags must be a boolean scalar, have shape "
+        f"{(N_DIPOLES,)}, or have shape "
+        f"{(N_FEEDS, N_DIPOLES)}; got "
+        f"{flag_array.shape}."
+    )
+
+
+def _as_dipole_gains(
+    dipole_gains: ArrayLike | None,
+) -> Array:
+    """
+    Convert post-current dipole gains to complex shape ``(2, 16)``.
+
+    Accepted inputs are:
+
+    - ``None``: unity gain for every dipole and both feeds;
     - scalar: broadcast to all dipoles and both feeds;
     - shape ``(16,)``: copied across both feeds;
-    - shape ``(2, 16)``: used directly.
+    - shape ``(2, 16)``: separate X and Y gains.
 
-    Real inputs are promoted to complex values with zero phase.
+    Real values represent amplitude-only gains. Complex values additionally
+    represent phase offsets.
     """
-    if excitations is None:
-        return _DEFAULT_EXCITATIONS
+    if dipole_gains is None:
+        return _DEFAULT_DIPOLE_GAINS
 
-    excitation_array = jnp.asarray(
-        excitations,
+    gain_array = jnp.asarray(
+        dipole_gains,
         dtype=COMPLEX_DTYPE,
     )
 
-    if excitation_array.ndim == 0:
+    if gain_array.ndim == 0:
         return jnp.full(
             (N_FEEDS, N_DIPOLES),
-            excitation_array,
+            gain_array,
             dtype=COMPLEX_DTYPE,
         )
 
-    if excitation_array.shape == (N_DIPOLES,):
+    if gain_array.shape == (N_DIPOLES,):
         return jnp.broadcast_to(
-            excitation_array[jnp.newaxis, :],
+            gain_array[jnp.newaxis, :],
             (N_FEEDS, N_DIPOLES),
         )
 
-    if excitation_array.shape == (N_FEEDS, N_DIPOLES):
-        return excitation_array
+    if gain_array.shape == (N_FEEDS, N_DIPOLES):
+        return gain_array
 
     raise ValueError(
-        "excitations must be a scalar, have shape "
+        "dipole_gains must be a scalar, have shape "
         f"{(N_DIPOLES,)}, or have shape "
         f"{(N_FEEDS, N_DIPOLES)}; got "
-        f"{excitation_array.shape}."
+        f"{gain_array.shape}."
     )
 
 
@@ -462,25 +519,25 @@ def element_jones(
 
 
 def port_currents(
-    excitations: ArrayLike | None = None,
+    dipole_flags: ArrayLike | None = None,
 ) -> Array:
     """
     Calculate the mutually coupled currents for each driven feed.
 
     Parameters
     ----------
-    excitations
-        Real or complex dipole excitations.
+    dipole_flags
+        Boolean flags controlling which dipole ports are driven.
 
         Accepted forms are:
 
-        - scalar: applied to every dipole and both feeds;
+        - ``None``: all dipoles enabled;
+        - boolean scalar: applied to every dipole and both feeds;
         - shape ``(16,)``: copied across both feeds;
-        - shape ``(2, 16)``: separate X and Y excitations.
+        - shape ``(2, 16)``: separate X and Y flags.
 
-        Real values represent amplitude-only excitation. Complex values
-        additionally represent phase offsets. A value of zero leaves the
-        corresponding dipole unexcited.
+        Flags are applied to the port-driving voltages before solving the
+        mutually coupled impedance system.
 
     Returns
     -------
@@ -502,16 +559,17 @@ def port_currents(
 
     ``Z_total @ current = excitation_voltage``.
 
-    Each feed is driven independently. For the X-feed solution, only the
-    X-port excitation voltages are non-zero. For the Y-feed solution, only
-    the Y-port excitation voltages are non-zero.
+    Each feed is driven independently. For the X-feed solution, enabled X
+    ports are driven with unit voltage and all Y-port voltages are zero. For
+    the Y-feed solution, enabled Y ports are driven with unit voltage and all
+    X-port voltages are zero.
     """
-    excitation_array = _as_excitations(excitations)
+    flag_array = _as_dipole_flags(dipole_flags)
 
     # Each column is an independent driven-feed problem:
     #
-    # column 0: excite the 16 X ports
-    # column 1: excite the 16 Y ports
+    # column 0: drive the enabled 16 X ports with unit voltage
+    # column 1: drive the enabled 16 Y ports with unit voltage
     excitation_voltage = jnp.zeros(
         (N_PORTS, N_FEEDS),
         dtype=COMPLEX_DTYPE,
@@ -520,31 +578,24 @@ def port_currents(
     excitation_voltage = excitation_voltage.at[
         :N_DIPOLES,
         0,
-    ].set(excitation_array[0])
+    ].set(flag_array[0].astype(COMPLEX_DTYPE))
 
     excitation_voltage = excitation_voltage.at[
         N_DIPOLES:,
         1,
-    ].set(excitation_array[1])
+    ].set(flag_array[1].astype(COMPLEX_DTYPE))
 
-    # Solve both driven-feed systems simultaneously.
     currents = jnp.linalg.solve(
         Z_TOTAL_OHM,
         excitation_voltage,
     )
 
-    # Initially:
-    #     (32 ports, 2 driven feeds)
-    # Reshape to:
-    #     (2 port polarizations, 16 dipoles, 2 driven feeds)
     currents = currents.reshape(
         N_FEEDS,
         N_DIPOLES,
         N_FEEDS,
     )
 
-    # Return:
-    #     (port polarization, driven feed, dipole)
     return jnp.swapaxes(
         currents,
         1,
@@ -555,7 +606,8 @@ def port_currents(
 def array_factor(
     az_rad: ArrayLike,
     za_rad: ArrayLike,
-    excitations: ArrayLike | None = None,
+    dipole_flags: ArrayLike | None = None,
+    dipole_gains: ArrayLike | None = None,
 ) -> Array:
     """
     Calculate the coupled array-factor matrix.
@@ -566,8 +618,14 @@ def array_factor(
         Azimuth in radians, measured eastward from North.
     za_rad
         Zenith angle in radians.
-    excitations
-        Real or complex dipole excitations. See :func:`port_currents`.
+    dipole_flags
+        Boolean dipole flags applied before the mutually coupled current
+        solve. See :func:`port_currents`.
+    dipole_gains
+        Real or complex post-current gains. Gains are indexed by driven feed
+        and dipole, with shape ``(2, 16)`` after broadcasting. For a given
+        driven feed and dipole, the same gain multiplies both port-polarization
+        current components produced by the coupled solve.
 
     Returns
     -------
@@ -583,17 +641,6 @@ def array_factor(
         za_rad,
     )
 
-    # direction has shape:
-    #     (..., 3)
-
-    # Adding a dipole axis gives:
-    #     (..., 1, 3)
-
-    # Multiplication with the dipole positions produces:
-    #     (..., 16, 3)
-
-    # Summing over the ENU-coordinate axis gives the geometric path:
-    #     (..., 16)
     geometric_path_m = jnp.sum(
         direction[..., jnp.newaxis, :] * DIPOLE_POSITIONS_ENU_M,
         axis=-1,
@@ -601,19 +648,19 @@ def array_factor(
 
     geometric_phase = jnp.exp(1j * WAVENUMBER_RAD_PER_M * geometric_path_m)
 
-    currents = port_currents(excitations)
+    currents = port_currents(dipole_flags=dipole_flags)
+    gain_array = _as_dipole_gains(dipole_gains)
 
-    # geometric_phase:
-    #     (..., 16)
+    # currents has shape:
+    #     (port polarization, driven feed, dipole)
+    # gain_array has shape:
+    #     (driven feed, dipole)
+    #
+    # A gain therefore scales the pair of X/Y port currents associated with
+    # one driven-feed/dipole entry, while leaving the mutual-coupling solve
+    # itself unchanged.
+    effective_currents = currents * gain_array[jnp.newaxis, :, :]
 
-    # geometric_phase[..., None, None, :]:
-    #     (..., 1, 1, 16)
-
-    # currents:
-    #     (2 port polarizations, 2 driven feeds, 16 dipoles)
-
-    # weighted_currents:
-    #     (..., 2, 2, 16)
     weighted_currents = (
         geometric_phase[
             ...,
@@ -621,20 +668,14 @@ def array_factor(
             jnp.newaxis,
             :,
         ]
-        * currents
+        * effective_currents
     )
 
-    # Sum over the 16 dipoles:
-    #
-    #     (..., 2, 2)
     factor = jnp.sum(
         weighted_currents,
         axis=-1,
     )
 
-    # Return the Jones-like axes first:
-    #
-    #     (2, 2, ...)
     return jnp.moveaxis(
         factor,
         (-2, -1),
@@ -642,78 +683,11 @@ def array_factor(
     )
 
 
-# def jones(
-#     az_rad: ArrayLike,
-#     za_rad: ArrayLike,
-#     excitations: ArrayLike | None = None,
-# ) -> Array:
-#     """
-#     Evaluate the full 137 MHz MWA tile Jones matrix.
-#
-#     Parameters
-#     ----------
-#     az_rad
-#         Azimuth in radians, measured eastward from North.
-#     za_rad
-#         Zenith angle in radians.
-#     excitations
-#         Real or complex dipole excitations. See :func:`port_currents`.
-#
-#     Returns
-#     -------
-#     tile_jones
-#         Complex Jones matrix with shape
-#         ``(2, 2, *broadcast_shape)``.
-#
-#         Axis zero contains the sky-vector components ``(phi, theta)``.
-#         Axis one contains the independently driven tile feeds ``(X, Y)``.
-#     """
-#     element = element_jones(
-#         az_rad,
-#         za_rad,
-#     )
-#
-#     factor = array_factor(
-#         az_rad,
-#         za_rad,
-#         excitations,
-#     )
-#
-#     # Move the two matrix axes to the end:
-#     #
-#     # element_matrix: (..., sky component, port polarization)
-#     # factor_matrix:  (..., port polarization, driven feed)
-#     element_matrix = jnp.moveaxis(
-#         element,
-#         (0, 1),
-#         (-2, -1),
-#     )
-#
-#     factor_matrix = jnp.moveaxis(
-#         factor,
-#         (0, 1),
-#         (-2, -1),
-#     )
-#
-#     # Matrix multiplication sums over the port-polarization axis:
-#     # (..., sky component, port polarization)
-#     # @
-#     # (..., port polarization, driven feed)
-#     # ->
-#     # (..., sky component, driven feed)
-#     tile_jones = element_matrix @ factor_matrix
-#
-#     return jnp.moveaxis(
-#         tile_jones,
-#         (-2, -1),
-#         (0, 1),
-#     )
-
-
 def jones(
     az_rad: ArrayLike,
     za_rad: ArrayLike,
-    excitations: ArrayLike | None = None,
+    dipole_flags: ArrayLike | None = None,
+    dipole_gains: ArrayLike | None = None,
 ) -> Array:
     """
     Evaluate the full 137 MHz MWA tile Jones matrix.
@@ -724,8 +698,10 @@ def jones(
         Azimuth in radians, measured eastward from North.
     za_rad
         Zenith angle in radians.
-    excitations
-        Real or complex dipole excitations. See :func:`port_currents`.
+    dipole_flags
+        Boolean dipole flags applied before the coupled-current solve.
+    dipole_gains
+        Real or complex post-current dipole gains applied in the array factor.
 
     Returns
     -------
@@ -753,7 +729,8 @@ def jones(
     factor = array_factor(
         az_rad,
         za_rad,
-        excitations,
+        dipole_flags=dipole_flags,
+        dipole_gains=dipole_gains,
     )
 
     # factor has shape:
@@ -778,7 +755,8 @@ def jones(
 def coherency(
     az_rad: ArrayLike,
     za_rad: ArrayLike,
-    excitations: ArrayLike | None = None,
+    dipole_flags: ArrayLike | None = None,
+    dipole_gains: ArrayLike | None = None,
     *,
     normalize: bool = False,
 ) -> Array:
@@ -791,8 +769,10 @@ def coherency(
         Azimuth in radians, measured eastward from North.
     za_rad
         Zenith angle in radians.
-    excitations
-        Real or complex dipole excitations. See :func:`port_currents`.
+    dipole_flags
+        Boolean dipole flags applied before the coupled-current solve.
+    dipole_gains
+        Real or complex post-current dipole gains applied in the array factor.
     normalize
         If True, normalize each coherency term using the corresponding
         zenith feed powers.
@@ -811,7 +791,8 @@ def coherency(
     tile_jones = jones(
         az_rad,
         za_rad,
-        excitations,
+        dipole_flags=dipole_flags,
+        dipole_gains=dipole_gains,
     )
 
     # Convert from:
@@ -840,7 +821,8 @@ def coherency(
         zenith_jones = jones(
             jnp.asarray(0.0, dtype=REAL_DTYPE),
             jnp.asarray(0.0, dtype=REAL_DTYPE),
-            excitations,
+            dipole_flags=dipole_flags,
+            dipole_gains=dipole_gains,
         )
 
         zenith_jones_matrix = jnp.moveaxis(
@@ -874,7 +856,8 @@ def coherency(
 def power(
     az_rad: ArrayLike,
     za_rad: ArrayLike,
-    excitations: ArrayLike | None = None,
+    dipole_flags: ArrayLike | None = None,
+    dipole_gains: ArrayLike | None = None,
     *,
     normalize: bool = False,
 ) -> Array:
@@ -887,8 +870,10 @@ def power(
         Azimuth in radians, measured eastward from North.
     za_rad
         Zenith angle in radians.
-    excitations
-        Real or complex dipole excitations. See :func:`port_currents`.
+    dipole_flags
+        Boolean dipole flags applied before the coupled-current solve.
+    dipole_gains
+        Real or complex post-current dipole gains applied in the array factor.
     normalize
         If True, independently normalize the XX and YY beams by their zenith
         responses.
@@ -903,7 +888,8 @@ def power(
     response = coherency(
         az_rad,
         za_rad,
-        excitations,
+        dipole_flags=dipole_flags,
+        dipole_gains=dipole_gains,
         normalize=normalize,
     )
 
