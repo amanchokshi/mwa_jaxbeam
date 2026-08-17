@@ -62,6 +62,35 @@ def test_power_is_real_and_nonnegative() -> None:
     assert np.all(np.asarray(response) >= -1e-6)
 
 
+def test_power_scales_with_common_gain_power() -> None:
+    az_rad = jnp.array([0.2, 0.7, 1.4])
+    za_rad = jnp.array([0.1, 0.4, 0.8])
+    gain = 0.8 * np.exp(1j * np.deg2rad(13.0))
+
+    reference = np.asarray(
+        power(
+            az_rad,
+            za_rad,
+            normalize=False,
+        )
+    )
+    scaled = np.asarray(
+        power(
+            az_rad,
+            za_rad,
+            dipole_gains=gain,
+            normalize=False,
+        )
+    )
+
+    np.testing.assert_allclose(
+        scaled,
+        np.abs(gain) ** 2 * reference,
+        rtol=1e-5,
+        atol=1e-6,
+    )
+
+
 def test_normalized_power_is_unity_at_zenith() -> None:
     response = power(
         0.0,
@@ -72,6 +101,35 @@ def test_normalized_power_is_unity_at_zenith() -> None:
     np.testing.assert_allclose(
         response,
         np.ones(2),
+        rtol=1e-5,
+        atol=1e-6,
+    )
+
+
+def test_common_gain_cancels_in_normalized_power() -> None:
+    az_rad = jnp.array([0.2, 0.7, 1.4])
+    za_rad = jnp.array([0.1, 0.4, 0.8])
+    gain = 0.8 * np.exp(1j * np.deg2rad(13.0))
+
+    reference = np.asarray(
+        power(
+            az_rad,
+            za_rad,
+            normalize=True,
+        )
+    )
+    scaled = np.asarray(
+        power(
+            az_rad,
+            za_rad,
+            dipole_gains=gain,
+            normalize=True,
+        )
+    )
+
+    np.testing.assert_allclose(
+        scaled,
+        reference,
         rtol=1e-5,
         atol=1e-6,
     )
